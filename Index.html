@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complaint Form - Minor Food Group</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 15px;
+        }
+        .container { max-width: 950px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px 15px 0 0;
+            text-align: center;
+        }
+        .header h1 { color: #667eea; font-size: 26px; margin-bottom: 8px; }
+        .header p { color: #666; font-size: 13px; }
+        .form-wrapper {
+            background: white;
+            padding: 25px;
+            border-radius: 0 0 15px 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        .section-title {
+            background: #f0f4ff;
+            padding: 12px 18px;
+            border-left: 5px solid #667eea;
+            margin: 20px 0 12px 0;
+            font-size: 15px;
+            font-weight: 600;
+            color: #667eea;
+            border-radius: 5px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 12px;
+        }
+        .form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+        .form-row.full { grid-template-columns: 1fr; }
+        .form-group { display: flex; flex-direction: column; }
+        label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+        .required { color: #e74c3c; }
+        input, select, textarea {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: #667eea;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        textarea { resize: vertical; min-height: 70px; }
+        .search-box { position: relative; }
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            z-index: 100;
+            display: none;
+            margin-top: 2px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .search-results.show { display: block; }
+        .search-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .search-item:hover { background: #f0f4ff; }
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 12px 24px;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-primary:hover { background: #5568d3; }
+        .btn-draft { background: #f39c12; color: white; }
+        .btn-draft:hover { background: #e67e22; }
+        .btn-email { background: #27ae60; color: white; }
+        .btn-email:hover { background: #229954; }
+        .btn-secondary { background: #95a5a6; color: white; }
+        .btn-secondary:hover { background: #7f8c8d; }
+        .message {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            font-size: 13px;
+            display: none;
+        }
+        .message.show { display: block; }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+        .message.info { background: #d1ecf1; color: #0c5460; }
+        .qa-display {
+            background: #e8f4f8;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-top: 8px;
+            font-size: 13px;
+            color: #0c5460;
+            border-left: 4px solid #3498db;
+            display: none;
+        }
+        .qa-display.show { display: block; }
+        @media (max-width: 768px) {
+            .form-row, .form-row.three { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🍽️ Minor Food Group</h1>
+            <p>Complaint Form - QA Brand System</p>
+        </div>
+        
+        <div class="form-wrapper">
+            <div id="message" class="message"></div>
+            
+            <form id="complaintForm">
+                <!-- Section 1: ผู้แจ้ง -->
+                <div class="section-title">📋 ข้อมูลผู้แจ้ง</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>วันที่แจ้ง <span class="required">*</span></label>
+                        <input type="date" id="reportDate" required>
+                    </div>
+                    <div class="form-group">
+                        <label>ชื่อผู้แจ้ง <span class="required">*</span></label>
+                        <input type="text" id="reporterName" required placeholder="ชื่อ">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="reporterEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>โทร <span class="required">*</span></label>
+                        <input type="tel" id="reporterPhone" required>
+                    </div>
+                </div>
+
+                <!-- Section 2: Brand -->
+                <div class="section-title">🏪 ข้อมูลร้าน/Brand</div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Brand <span class="required">*</span></label>
+                        <select id="brand" required>
+                            <option value="">-- เลือก Brand --</option>
+                            <option value="TPC">The Pizza Company</option>
+                            <option value="SW">Swensen's</option>
+                            <option value="GAGA">GAGA</option>
+                            <option value="TCC">The Coffee Club</option>
+                            <option value="SLRT">Sizzler</option>
+                            <option value="BK">Burger King</option>
+                            <option value="BT">Steak & More</option>
+                            <option value="BC">Kob-Kob</option>
+                            <option value="DQ">Dairy Queen</option>
+                            <option value="BASIL">Bonchon</option>
+                            <option value="Hotel">Hotel</option>
+                            <option value="MG">Minor Group</option>
+                            <option value="SG">SG Brand</option>
+                            <option value="CJ">CJ Brand</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>QA Brand (Auto)</label>
+                        <input type="text" id="qaBrand" readonly placeholder="Auto fill">
+                    </div>
+                </div>
+                <div id="qaBrandInfo" class="qa-display"></div>
+
+                <!-- Section 3: สินค้า -->
+                <div class="section-title">📦 ข้อมูลสินค้า</div>
+                <div class="form-row full search-box">
+                    <div class="form-group">
+                        <label>ค้นหาสินค้า <span class="required">*</span></label>
+                        <input type="text" id="productSearch" placeholder="พิมพ์ชื่อหรือรหัส..." autocomplete="off">
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ชื่อสินค้า <span class="required">*</span></label>
+                        <input type="text" id="productName" required readonly>
+                    </div>
+                    <div class="form-group">
+                        <label>รหัส <span class="required">*</span></label>
+                        <input type="text" id="productCode" required readonly>
+                    </div>
+                </div>
+
+                <!-- Section 4: ปัญหา -->
+                <div class="section-title">⚠️ ปัญหา</div>
+                <div class="form-row three">
+                    <div class="form-group">
+                        <label>จำนวนรับ <span class="required">*</span></label>
+                        <input type="number" id="receivedQty" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>จำนวนพบปัญหา <span class="required">*</span></label>
+                        <input type="number" id="defectQty" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>หน่วย <span class="required">*</span></label>
+                        <input type="text" id="uom" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>ประเภท Safety <span class="required">*</span></label>
+                        <select id="safetyType" required>
+                            <option value="">-- เลือก --</option>
+                            <option value="Foreign Matter">สิ่งแปลกปลอม</option>
+                            <option value="Contamination">การปนเปื้อน</option>
+                            <option value="Expired">หมดอายุ</option>
+                            <option value="Other">อื่นๆ</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ประเภท Quality <span class="required">*</span></label>
+                        <select id="qualityType" required>
+                            <option value="">-- เลือก --</option>
+                            <option value="Taste">รสชาติ</option>
+                            <option value="Texture">เนื้อสัมผัส</option>
+                            <option value="Appearance">รูปลักษณ์</option>
+                            <option value="Other">อื่นๆ</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row full">
+                    <div class="form-group">
+                        <label>รายละเอียด <span class="required">*</span></label>
+                        <textarea id="complaintDetail" required></textarea>
+                    </div>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <button type="submit" class="btn btn-primary">✅ บันทึก</button>
+                    <button type="button" class="btn btn-email" onclick="sendEmail()">📧 ส่งเมล</button>
+                    <button type="reset" class="btn btn-secondary">🗑️ ล้าง</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // QA Brand Data
+        const QA_BRANDS = {
+            'TPC': { qa: 'SQA OIL', email: 'pajaree_th@minor.com' },
+            'SW': { qa: 'SQA TAI', email: 'vorapat_pa@minor.com' },
+            'GAGA': { qa: 'SQA TAI', email: 'vorapat_pa@minor.com' },
+            'TCC': { qa: 'SQA TAI', email: 'vorapat_pa@minor.com' },
+            'SLRT': { qa: "SQA P'KAN", email: 'kanjana_ke@minor.com' },
+            'BK': { qa: 'SQA NON', email: 'nantiphak_wu@minor.com' },
+            'BT': { qa: 'SQA NON', email: 'nantiphak_wu@minor.com' },
+            'BC': { qa: 'SQA NON', email: 'nantiphak_wu@minor.com' },
+            'DQ': { qa: 'SQA MAY', email: 'kelwalin_ra@minor.com' },
+            'BASIL': { qa: 'SQA MAY', email: 'kelwalin_ra@minor.com' },
+            'Hotel': { qa: "SQA P'BOON", email: 'noppawan_ta@minor.com' },
+            'MG': { qa: "SQA P'BOON", email: 'noppawan_ta@minor.com' },
+            'SG': { qa: "SQA P'BOON", email: 'noppawan_ta@minor.com' },
+            'CJ': { qa: "SQA P'BOON", email: 'noppawan_ta@minor.com' }
+        };
+
+        // Sample Products
+        const PRODUCTS = [
+            { c: '0101010002', n: 'WHITE BREAD 480G', b: 'CJ', u: 'BAG' },
+            { c: '0102020001', n: 'SWISS CHEESE', b: 'CJ', u: 'BOX' },
+            { c: '0103030001', n: 'CHEDDAR CHEESE', b: 'CJ', u: 'BOX' },
+            { c: '0104040001', n: 'MOZZARELLA CHEESE', b: 'CJ', u: 'BOX' },
+            { c: '0201010001', n: 'OLIVE OIL 500ML', b: 'MG', u: 'BTL' },
+            { c: '0202020001', n: 'VEGETABLE OIL 1L', b: 'MG', u: 'BTL' }
+        ];
+
+        // Initialize
+        document.getElementById('reportDate').valueAsDate = new Date();
+
+        // Brand change
+        document.getElementById('brand').addEventListener('change', function() {
+            const brand = this.value;
+            if (brand && QA_BRANDS[brand]) {
+                const qa = QA_BRANDS[brand];
+                document.getElementById('qaBrand').value = qa.qa;
+                document.getElementById('qaBrandInfo').innerHTML = 
+                    '<strong>📧 Email:</strong> ' + qa.email + '<br>' +
+                    '<strong>📋 CC:</strong> tumawadee_th@minor.com';
+                document.getElementById('qaBrandInfo').classList.add('show');
+            }
+        });
+
+        // Product search
+        const searchInput = document.getElementById('productSearch');
+        const searchResults = document.getElementById('searchResults');
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.toLowerCase().trim();
+            if (query.length < 1) {
+                searchResults.classList.remove('show');
+                return;
+            }
+
+            const results = PRODUCTS.filter(p => 
+                p.n.toLowerCase().includes(query) || p.c.includes(query)
+            );
+
+            if (results.length === 0) {
+                searchResults.innerHTML = '<div class="search-item">❌ ไม่พบ</div>';
+            } else {
+                searchResults.innerHTML = results.map(p => 
+                    '<div class="search-item" onclick="selectProduct(\'' + p.c + '\')">' +
+                    '<strong>' + p.c + '</strong> - ' + p.n + ' (' + p.u + ')' +
+                    '</div>'
+                ).join('');
+            }
+            searchResults.classList.add('show');
+        });
+
+        function selectProduct(code) {
+            const p = PRODUCTS.find(x => x.c === code);
+            if (p) {
+                document.getElementById('productName').value = p.n;
+                document.getElementById('productCode').value = p.c;
+                document.getElementById('uom').value = p.u;
+                searchResults.classList.remove('show');
+                searchInput.value = '';
+            }
+        }
+
+        // Form submit
+        document.getElementById('complaintForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            showMessage('✅ บันทึก Record สำเร็จ!', 'success');
+            setTimeout(() => {
+                if (confirm('ส่งเมลให้ QA Brand?')) {
+                    sendEmail();
+                }
+            }, 1000);
+        });
+
+        function sendEmail() {
+            const brand = document.getElementById('brand').value;
+            if (!brand) {
+                showMessage('⚠️ กรุณาเลือก Brand', 'error');
+                return;
+            }
+            const qa = QA_BRANDS[brand];
+            const body = 'Complaint Form Data:\n\n' +
+                'Product: ' + document.getElementById('productName').value + '\n' +
+                'Code: ' + document.getElementById('productCode').value + '\n' +
+                'Received: ' + document.getElementById('receivedQty').value + '\n' +
+                'Defect: ' + document.getElementById('defectQty').value;
+            
+            window.location.href = 'mailto:' + qa.email + '?cc=tumawadee_th@minor.com&subject=Complaint&body=' + encodeURIComponent(body);
+            showMessage('📧 เปิดอีเมล', 'info');
+        }
+
+        function showMessage(msg, type) {
+            const el = document.getElementById('message');
+            el.textContent = msg;
+            el.className = 'message show ' + type;
+            setTimeout(() => el.classList.remove('show'), 5000);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-box')) {
+                searchResults.classList.remove('show');
+            }
+        });
+    </script>
+</body>
+</html>
